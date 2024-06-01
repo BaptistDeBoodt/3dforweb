@@ -137,7 +137,7 @@ const whiteEmmision = new THREE.MeshBasicMaterial({color: 0xffffff,});
 const yellowEmmision = new THREE.MeshBasicMaterial({color: 0xFFE36A,});
 
 
-
+/*mixer*/
 let mixer;
 let animationObject = {
     actions: {},
