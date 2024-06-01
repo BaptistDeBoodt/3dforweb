@@ -144,14 +144,13 @@ let animationObject = {
 };
 
 let gltf
+let barricadeLeft;
 gltfLoader.load('/models/baking-777.glb', (gltf) => {
     gltf.scene.traverse((child) => {
         if (child.isMesh) {
             child.material = material1;
         }
     });
-
-
 
     const chalkLineMesh = gltf.scene.children.find(child => child.name === 'chalk_line');
     const bloodMesh = gltf.scene.children.find(child => child.name === 'blood');
@@ -168,6 +167,8 @@ gltfLoader.load('/models/baking-777.glb', (gltf) => {
     const dinerLight = gltf.scene.children.find(child => child.name === 'diner_building_light');
     const lantern = gltf.scene.children.find(child => child.name === 'lanternlight');
 
+    // Add this line
+    barricadeLeft = gltf.scene.children.find(child => child.name === 'barricade_left');
 
     // Apply materials
     if (proofCardOne &&
@@ -194,7 +195,6 @@ gltfLoader.load('/models/baking-777.glb', (gltf) => {
             lantern.material = whiteEmmision;
     }
 
-
     // Apply materials to specific meshes
     if (chalkLineMesh) {
         chalkLineMesh.material = materialGuy;
@@ -209,7 +209,6 @@ gltfLoader.load('/models/baking-777.glb', (gltf) => {
     if (blanketMesh) {
         // blanketMesh.material = materialBlanket;
         blanketMesh.material = greyMaterial;
-
     }
 
     mixer = new THREE.AnimationMixer(gltf.scene);
@@ -217,11 +216,9 @@ gltfLoader.load('/models/baking-777.glb', (gltf) => {
         mixer.clipAction(clip).play();
     });
 
-
     // Add loaded GLTF scene to the main scene
     scene.add(gltf.scene);
 });
-
 
 /**
  * Function to mirror the UV coordinates of a mesh diagonally.
@@ -377,21 +374,31 @@ const raycaster = new THREE.Raycaster()
 const clock = new THREE.Clock()
 let previousTime = 0
 const tick = () =>
-{
-    const elapsedTime = clock.getElapsedTime()
-    const deltaTime = elapsedTime - previousTime
-    previousTime = elapsedTime
-
-    // Update controls
-    controls.update()
-
-    if(sceneReady){
-
-        // Update mixer
-        if (mixer) {
-            mixer.update(deltaTime);
-        }
-        for(const point of points)
+    {
+        const elapsedTime = clock.getElapsedTime()
+        const deltaTime = elapsedTime - previousTime
+        previousTime = elapsedTime
+    
+        // Update controls
+        controls.update()
+    
+        if(sceneReady){
+    
+            // Update mixer
+            if (mixer) {
+                mixer.update(deltaTime);
+            }
+    
+            // Check barricade-left position and toggle visibility
+            if (barricadeLeft) {
+                if (barricadeLeft.position.y < -1) {
+                    barricadeLeft.visible = false;
+                } else {
+                    barricadeLeft.visible = true;
+                }
+            }
+    
+            for(const point of points)
             {
                 const screenPosition = point.position.clone()
                 screenPosition.project(camera)
@@ -400,36 +407,36 @@ const tick = () =>
                 const intersects = raycaster.intersectObjects(scene.children, true)
     
                 if(intersects.length === 0 && debugObject.poi)
+                {
+                    point.element.classList.add('visible')
+                }
+                else
+                {
+                    const intersectionDistance = intersects[0].distance
+                    const pointDistance = point.position.distanceTo(camera.position)
+    
+                    if(intersectionDistance < pointDistance)
+                    {
+                        point.element.classList.remove('visible')
+                    }
+                    else if(intersectionDistance > pointDistance && debugObject.poi)
                     {
                         point.element.classList.add('visible')
                     }
-                    else
-                    {
-                        const intersectionDistance = intersects[0].distance
-                        const pointDistance = point.position.distanceTo(camera.position)
-            
-                        if(intersectionDistance < pointDistance)
-                        {
-                            point.element.classList.remove('visible')
-                        }
-                        else if(intersectionDistance > pointDistance && debugObject.poi)
-                        {
-                            point.element.classList.add('visible')
-                        }
-                    }
-        
+                }
+    
                 const translateX = screenPosition.x * sizes.width * 0.5
                 const translateY = - screenPosition.y * sizes.height * 0.5
                 point.element.style.transform = `translateX(${translateX}px) translateY(${translateY}px)`
             }
+        }
+    
+        // Render
+        renderer.render(scene, camera)
+    
+        // Call tick again on the next frame
+        window.requestAnimationFrame(tick)
     }
     
-
-    // Render
-    renderer.render(scene, camera)
-
-    // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
-}
-
-tick()
+    tick()
+    
